@@ -33,7 +33,7 @@ class Bank_Account_Flow(object):
     """Model clients opening and closing a bank account over time.
     Note, all time units are in terms of one week. One day would correspond
     to 1/7 of a week or .143."""
-    def __init__(self, env, average_number_of_meetings_per_week=100,
+    def __init__(self, env, average_number_of_meetings_per_week=150,
                  average_weekly_conversion_meeting_client=.05,
                  std_weekly_conversion_meeting_client=.05,
                  average_client_lifetime_weeks=10,
@@ -129,9 +129,8 @@ class Bank_Account_Flow(object):
                 time_between_clients))
             ## Now, either open a bank account, or close a bank account depending
             # on the customer's lifetime
-            # # Either open bank account for next customer, of close bank account
+            # # Either open bank account for next customer, ofrclose bank account
             # # for previous customer
-
             open_bank_process = self.env.process(self.open_bank_account(client))
             close_accounts = self.env.process(self.close_accounts(client))
             ## which one finishes first
@@ -140,10 +139,10 @@ class Bank_Account_Flow(object):
             # Below, is the time between customers or the 'flow' of customers
             yield self.env.timeout(time_between_clients)
             open_credit_card = self.env.process(self.open_credit_cart(client))
-
+            ## either open a credit card OR this customer has churned
             open_credit_card | close_accounts
             ### ASSUMPTION ####
-            ### This is assuming that the first thing a client will do is open a
+            ### This is assuming that the first thing a client will do is open a bank# account.
 
     def monitor_resource(self, resource, resource_name):
         """Print out monitoring statistics for a given resource.
@@ -197,22 +196,23 @@ class Bank_Account_Flow(object):
             self.time_series_client_with_bankaccount.append(("Time =",
                 self.env.now,self.bank_account_resource.count))
                 # try to release the credit card resource (if a client has a CC)
-            try:
+            if client.time_credit_card_opened != None:
                 self.credit_card_resource.release(client.credit_card_resource_request)
-                self.time_between_bank_account_credit_card.append(("time = ",
+                self.time_series_client_with_cc.append(("time = ",
                     self.env.now, self.credit_card_resource.count))
-            except: # this client didn't have a credit card
+                print("Client {} just closed their credit card".format(
+                    client.client_id))
+            else: # this client didn't have a credit card
                 print('error closing credit card!!')
 
             client.time_bank_closed = self.env.now
             print(client.time_bank_closed , ' Bank was closed at this time !')
 
-            #self.env.interrupt()
         else: # we already closed this account
             print('We ALREADY closed client {} bank account at time {}'.format(
                 client.client_id, client.time_bank_closed
             ))
-            pass
+
 
 
     def open_credit_cart(self,client):
@@ -225,32 +225,37 @@ class Bank_Account_Flow(object):
                 client.client_id
             ))
         else:
-            with self.credit_card_resource.request() as open_cc:
-                # Time between bank account and credit card
-                yield self.env.timeout(self.time_between_bank_account_credit_card)
-                # CC requet
-                cc_request = self.credit_card_resource.request()
-                yield cc_request # request was successful
+            ## wait some time between opening a bank and CC
+            yield self.env.timeout(self.time_between_bank_account_credit_card)
+            if client.client_lifetime < self.env.now:
+                pass
+            else:
+                with self.credit_card_resource.request() as open_cc:
+                    # Time between bank account and credit card
 
-                print()
-                print("Client {} is opening a credit card at time={}".format(
-                                         client.client_id, self.env.now))
+                    # CC requet
+                    cc_request = self.credit_card_resource.request()
+                    yield cc_request # request was successful
+
+                    print()
+                    print("Client {} is opening a credit card at time={}".format(
+                                             client.client_id, self.env.now))
 
 
-                    ## wait some time until the next client can open a bank account
-                print('Time to wait between bank account and credit card is {}, \
-                      client {} will open a CC at time {}'.format(
-                      self.time_between_bank_account_credit_card,
-                      client.client_id, self.env.now+self.time_between_bank_account_credit_card))
+                        ## wait some time until the next client can open a bank account
+                    print('Time to wait between bank account and credit card is {}, \
+                          client {} will open a CC at time {}'.format(
+                          self.time_between_bank_account_credit_card,
+                          client.client_id, self.env.now+self.time_between_bank_account_credit_card))
 
-                    ## keep track of the number of people with credit cards
-                self.monitor_resource(self.credit_card_resource, 'credit_card')
+                        ## keep track of the number of people with credit cards
+                    self.monitor_resource(self.credit_card_resource, 'credit_card')
 
-                self.time_series_client_with_cc.append(("Time = {}",
-                    self.env.now,self.credit_card_resource.count))
-                client.time_credit_card_opened= self.env.now
-                # Store the CC request
-                client.credit_card_resource_request = cc_request
+                    self.time_series_client_with_cc.append(("Time = {}",
+                        self.env.now,self.credit_card_resource.count))
+                    client.time_credit_card_opened= self.env.now
+                    # Store the CC request
+                    client.credit_card_resource_request = cc_request
 
 
 
@@ -260,10 +265,11 @@ if __name__ == "__main__":
 
     env.process(bank_account_flow.initiate_client_run())
 
-    until = 15
+    until = 100
     while env.peek() < until:
         env.step()
-
+    print()
+    print("SUMMARY STATISTICS")
     print('Finished at time {}'.format(env.now))
     print("Number of clients for this week {}".format(
         bank_account_flow.total_clients))
