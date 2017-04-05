@@ -241,7 +241,6 @@ class Bank_Account_Flow(object):
                     print("Client {} is opening a credit card at time={}".format(
                                              client.client_id, self.env.now))
 
-
                         ## wait some time until the next client can open a bank account
                     print('Time to wait between bank account and credit card is {}, \
                           client {} will open a CC at time {}'.format(
