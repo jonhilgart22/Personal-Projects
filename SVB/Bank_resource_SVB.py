@@ -1,9 +1,8 @@
 #! usr/bin/env python
 import simpy
-import simpy
+import scipy.stats as stats
 import pandas as pd
 import pymc3
-import scipy
 import numpy as np
 __author__='Jonathan Hilgart'
 
@@ -29,78 +28,93 @@ class Client(object):
 
 
 
-class Bank_Account_Flow(object):
+class ESP_Accelerator_Stripe_flow(object):
     """Model clients opening and closing a bank account over time.
     Note, all time units are in terms of one week. One day would correspond
     to 1/7 of a week or .143."""
-    def __init__(self, env, average_number_of_meetings_per_week=150,
-                 average_weekly_conversion_meeting_client=.05,
-                 std_weekly_conversion_meeting_client=.05,
-                 average_client_lifetime_weeks=10,
+    def __init__(self, env, average_client_lifetime_weeks=10,
                  time_to_open_bank_account=.05,
                  time_between_bank_account_credit_card=2,
-                 bank_capacity=1000,
-                 cc_capacity=200):
-        self.average_number_of_meetings_per_week = \
-            average_number_of_meetings_per_week
-        self.average_weekly_conversion_meeting_client = \
-            average_weekly_conversion_meeting_client
-        self.std_weekly_conversion_meeting_client = \
-            std_weekly_conversion_meeting_client
+                 number_of_weeks_to_run = 52,
+                 bank_capacity=1000, cc_capacity=200, esb_capacity = 5000,
+                 stripe_capacity=3000):
         self.average_client_lifetime_weeks = \
             average_client_lifetime_weeks
         self.time_to_open_bank_account = \
             time_to_open_bank_account
         self.time_between_bank_account_credit_card =\
          time_between_bank_account_credit_card
+        self.number_of_weeks_to_run = number_of_weeks_to_run
 
         self.bank_account_resource = simpy.Resource(env, capacity=bank_capacity)
         self.credit_card_resource = simpy.Resource(env, capacity=cc_capacity)
-
+        self.esb_team_resource =  simpy.Resource(env, capacity=esb_capacity)
+        self.accelerator_team_resource =  simpy.Resource(env, capacity=acceleartor_capacity)
+        self.stripe_team_resource = simpy.Resource(env, capacity=stripe_capacity)
 
         self.time_series_client_with_bankaccount = []
         self.time_series_client_with_cc = []
-
-
         self.env = env
-        self.meet_client()
-        self.total_clients()
+
         self.client_lifetimes = []
 
         self.list_of_all_clients = []
 
-    def meet_client(self):
-        """A random number of meetings with prospective client per week.
-        Returns a random number of meetings per week"""
-        number_of_meetings = np.random.poisson(
-            lam=self.average_number_of_meetings_per_week)
-        self.number_of_meetings = number_of_meetings
+    def esp_clients_per_week(self,mean=20.433962264150942, std=3.5432472792051746):
+        """This generates the number of new clients in ESP for a given week.
+        The default parameters are taken from the years 2013-2016."""
+        self.oneweek_esp_clients = stats.norm.rvs(mean,std)
+        if self.oneweek_esp_clients <0:
+            self.oneweek_esp_clients = 0
 
-    def total_clients(self):
-        """Takes the number of clients that were meet in the past week.
-        And return the number that ultimately become prospects.
-        This assumes the conversion rate is a normal distribution.
-        This returns the number of prospects/clients for the week"""
-        conversion_rate = np.random.normal(loc=
-                self.average_weekly_conversion_meeting_client ,
-                scale = self.std_weekly_conversion_meeting_client)
-        if conversion_rate<0: ##  can't have negative
-            conversion_rate = .0001
-        self.conversion_rate = conversion_rate
-        total_clients = self.number_of_meetings*conversion_rate
-        self.total_clients = round(total_clients) # for the week
-        self.time_between_clients = self.total_clients / 7
+    def accelerator_clients_per_week(self,mean=4.1792452830188678,
+                                     std=0.92716914151900442):
+        """This generates the number of new clients in accelerator for a given week.
+        The default parameters are taken from the years 2013-2016"""
+        self.oneweek_accelerator_clients = stats.norm.rvs(mean,std)
+        if self.oneweek_accelerator_clients < 0:
+            self.oneweek_accelerator_clients =0
 
-    def initiate_client_run(self):
+    def stripe_clients_per_week(self,mean=23.209302325581394,
+                                std=12.505920717868896):
+        """"This generates the number of new Stripe customers from the given week.
+        The default parameters from from 2016""""
+    self.oneweek_stripe_clients = stats.norm.rvs(mean,std)
+    if self.oneweek_stripe_clients < 0:
+        self.oneweek_stripe_clients = 0
+
+    def time_between_esb_accelerator(self,shape = 1.3513865965152867,
+        location = -0.85750795314579964, scale = 57.412494398862549):
+        """This is an exponential distribution of the average time between
+        a client being in the esp team and being moved to the acceleartor team.
+        Default parameters are from 2000-2016"""
+        self.time_between_esb_accelerator = stats.gamma.rvs(shape,location,scale)
+        if self.time_between_esb_accelerator <0:
+            self.time_between_esb_accelerator = 1
+            # at least one week before transferring to accelerator
+
+    # def total_clients(self):
+    #     """Takes the number of clients that were meet in the past week.
+    #     And return the number that ultimately become prospects.
+    #     This assumes the conversion rate is a normal distribution.
+    #     This returns the number of prospects/clients for the week"""
+    #     conversion_rate = np.random.normal(loc=
+    #             self.average_weekly_conversion_meeting_client ,
+    #             scale = self.std_weekly_conversion_meeting_client)
+    #     if conversion_rate<0: ##  can't have negative
+    #         conversion_rate = .0001
+    #     self.conversion_rate = conversion_rate
+    #     total_clients = self.number_of_meetings*conversion_rate
+    #     self.total_clients = round(total_clients) # for the week
+    #     self.time_between_clients = self.total_clients / 7
+
+    def initiate_week_client_run(self):
         """This is the main function for initiating clients throughout the time
         at the bank. The number of customers is an input which is given when you
         instantiate this class.
 
-        This function uses an exponential distribution to find the
-        customer_lifetime for each client. Then, each customer opoens up
-        a bank account, when the time between each customer given by
-        a normal distribution of conversion rate from the number of meetings
-        to client.
+        This function steps through the simulated time one week at a time
+        and keeps track of the number of clients at each node during this simulation.
 
         This function calls sub functions 'open bank account' and 'close bank
         account' with a simpy process wrapper to keep track of the time for each.
@@ -110,6 +124,18 @@ class Bank_Account_Flow(object):
         can be used to calculate the LTV for these customers.
 
         """
+        for week_n in range(number_of_weeks_to_run):
+            ## generate new clients for each channel
+            self.esp_clients_per_week()
+            self.accelerator_clients_per_week()
+            self.stripe_clients_per_week()
+
+            one_week_increment = self.env.timeout(1)
+
+            ## need to generate wait times to open each product
+
+
+
         for client_id in range(self.total_clients):
             # number of client for this week
             client_lifetime = np.random.exponential(scale =
@@ -260,7 +286,7 @@ class Bank_Account_Flow(object):
 
 if __name__ == "__main__":
     env = simpy.Environment()
-    bank_account_flow = Bank_Account_Flow(env)
+    bank_account_flow = BESP_Accelerator_Stripe_flow(env)
 
     env.process(bank_account_flow.initiate_client_run())
 
