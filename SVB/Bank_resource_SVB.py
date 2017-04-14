@@ -88,7 +88,7 @@ class ESP_Accelerator_Stripe_flow(object):
         """This is an exponential distribution of the average time between
         a client being in the esp team and being moved to the acceleartor team.
         Default parameters are from 2000-2016"""
-        self.time_between_esb_accelerator = stats.gamma.rvs(shape,location,scale)
+        self.time_between_esb_accelerator = stats.gamma.rvs(shape, location, scale)
         if self.time_between_esb_accelerator <0:
             self.time_between_esb_accelerator = 1
             # at least one week before transferring to accelerator
@@ -108,7 +108,10 @@ class ESP_Accelerator_Stripe_flow(object):
     #     self.total_clients = round(total_clients) # for the week
     #     self.time_between_clients = self.total_clients / 7
 
-    def initiate_week_client_run(self):
+    def initiate_week_client_run(self, esp_mean=20.433962264150942,
+        esp_std=3.5432472792051746, accel_mean = 4.1792452830188678,
+        accel_std = 0.92716914151900442, stripe_mean = 23.209302325581394,
+        stripe_std = 12.505920717868896):
         """This is the main function for initiating clients throughout the time
         at the bank. The number of customers is an input which is given when you
         instantiate this class.
@@ -126,9 +129,9 @@ class ESP_Accelerator_Stripe_flow(object):
         """
         for week_n in range(number_of_weeks_to_run):
             ## generate new clients for each channel
-            self.esp_clients_per_week()
-            self.accelerator_clients_per_week()
-            self.stripe_clients_per_week()
+            self.esp_clients_per_week(esp_mean,esp_std)
+            self.accelerator_clients_per_week(accel_mean,accel_std)
+            self.stripe_clients_per_week(stripe_mean,stripe_std)
 
             one_week_increment = self.env.timeout(1)
 
