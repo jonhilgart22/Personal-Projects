@@ -2,8 +2,8 @@
 import simpy
 import scipy.stats as stats
 import pandas as pd
-import pymc3
 import numpy as np
+from esp_accelerator_products import ESP_revenue_predictions
 __author__='Jonathan Hilgart'
 
 
@@ -20,9 +20,11 @@ class Client(object):
         keep track of different events that occur."""
         self.client_id = client_id
         self.client_lifetime = client_lifetime
+
         self.time_bank_closed = None
         self.time_credit_card_opened = None
         self.time_bank_was_opened = None
+
         self.esp_open_money_market_bonus_request = None
         self.esp_open_collateral_mma_request  = None
         self.esp_open_cash_management_request = None
@@ -42,14 +44,12 @@ class ESP_Accelerator_Stripe_flow(object):
     def __init__(self, env, average_client_lifetime_weeks=10,
                  time_to_open_bank_account=.05,
                  time_between_bank_account_credit_card=2,
-                 number_of_weeks_to_run = 2,
+                 number_of_weeks_to_run = 4,
                  esp_open_money_market_bonus_capacity=1000,
                  esp_open_collateral_mma_capacity =1000,
                  esp_open_cash_management_capacity = 1000, esp_fx_capacity = 1000,
                  esp_open_letters_of_credit_capacity = 1000,
                  esp_open_enterprise_sweep_capacity = 1000,esp_open_checking_capacity = 1000,
-
-
                  cc_capacity=200, esp_capacity = 5000,
                  stripe_capacity=3000):
         self.env = env
@@ -83,6 +83,22 @@ class ESP_Accelerator_Stripe_flow(object):
         self.time_series_esp_letters_of_credit = []
         self.time_series_esp_enterprise_sweep = []
         self.time_series_esp_checking= []
+
+        self.time_series_esp_money_market_bonus_total_weekly_rev= []
+        self.time_series_esp_collateral_mma_total_weekly_rev = []
+        self.time_series_esp_cash_management_total_weekly_rev= []
+        self.time_series_esp_fx_total_weekly_rev= []
+        self.time_series_esp_letters_of_credit_total_weekly_rev = []
+        self.time_series_esp_enterprise_sweep_total_weekly_rev= []
+        self.time_series_esp_checking_total_weekly_rev = []
+
+        self.time_series_esp_money_market_bonus_rev_per_customer = []
+        self.time_series_esp_collateral_mma_rev_per_customer = []
+        self.time_series_esp_cash_management_rev_per_customer = []
+        self.time_series_esp_fx_rev_per_customer = []
+        self.time_series_esp_letters_of_credit_rev_per_customer = []
+        self.time_series_esp_enterprise_sweep_rev_per_customer = []
+        self.time_series_esp_checking_rev_per_customer = []
 
 
         #self.time_series_client_with_bankaccount = []
@@ -169,6 +185,7 @@ class ESP_Accelerator_Stripe_flow(object):
             print(self.oneweek_esp_clients, ' ESP clients this week')
             print(self.oneweek_accelerator_clients, "acceleartor clinets this week")
             print(self.oneweek_stripe_clients, ' stripe clients this week')
+            ## See where the ESP clients end up across the products
             for esp_client_n in range(int(self.oneweek_esp_clients)):
                 esp_client = Client(str(esp_client_n)+'-'+str(week_n),10) # default client lifetime
                 open_mmb = self.env.process(self.esp_open_money_market_bonus(esp_client))
@@ -182,20 +199,55 @@ class ESP_Accelerator_Stripe_flow(object):
                     open_es & open_c
 
             ## add in the number of clients for each week
-            self.time_series_esp_money_market_bonus.append(("Time = {}",
+            self.time_series_esp_money_market_bonus.append(("Week = ",
                 self.env.now,self.esp_money_market_bonus_resource.count))
-            self.time_series_esp_collateral_mma.append(("Time = {}",
+            self.time_series_esp_collateral_mma.append(("Week = ",
                 self.env.now,self.esp_collateral_mma_resource.count))
-            self.time_series_esp_cash_management.append(("Time = {}",
+            self.time_series_esp_cash_management.append(("Week = ",
                 self.env.now,self.esp_cash_management_resource.count))
-            self.time_series_esp_fx.append(("Time = {}",
+            self.time_series_esp_fx.append(("Week = ",
                 self.env.now,self.esp_fx_resource.count))
-            self.time_series_esp_letters_of_credit.append(("Time = {}",
+            self.time_series_esp_letters_of_credit.append(("Week = ",
                 self.env.now,self.esp_letters_of_credit_resource.count))
-            self.time_series_esp_enterprise_sweep.append(("Time = {}",
+            self.time_series_esp_enterprise_sweep.append(("Week = ",
                 self.env.now,self.esp_enterprise_sweep_resource.count))
-            self.time_series_esp_checking.append(("Time = {}",
+            self.time_series_esp_checking.append(("Week = ",
                 self.env.now,self.esp_checking_resource.count))
+
+            ### esp money market bonus weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_money_market_bonus,
+                ESP_revenue_predictions.money_market_bonus_weekly_rev(),
+                self.time_series_esp_money_market_bonus_total_weekly_rev,
+                self.time_series_esp_money_market_bonus_rev_per_customer)
+            ### esp collateral mma weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_collateral_mma,
+                ESP_revenue_predictions.collateral_mma_weekly_rev(),
+                self.time_series_esp_collateral_mma_total_weekly_rev,
+                self.time_series_esp_collateral_mma_rev_per_customer)
+            ### esp cash management weekly revenue
+            self.get_weekly_gp(week_n, self.time_series_esp_cash_management,
+                ESP_revenue_predictions.cash_management_weekly_rev(),
+                self.time_series_esp_cash_management_total_weekly_rev,
+                self.time_series_esp_cash_management_rev_per_customer)
+            ### esp fx weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_fx,
+                ESP_revenue_predictions.fx_weekly_rev(),
+                self.time_series_esp_fx_total_weekly_rev,
+                self.time_series_esp_fx_rev_per_customer)
+            ### esp letters of credit
+            self.get_weekly_gp(week_n, self.time_series_esp_letters_of_credit,
+                ESP_revenue_predictions.letters_of_credit_weekly_rev(),
+                self.time_series_esp_letters_of_credit_total_weekly_rev,
+                self.time_series_esp_letters_of_credit_rev_per_customer)
+            ### esp enterprise sweep weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_enterprise_sweep,
+                ESP_revenue_predictions.enterprise_sweep_weekly_rev(),
+                self.time_series_esp_enterprise_sweep_total_weekly_rev,
+                self.time_series_esp_enterprise_sweep_rev_per_customer)
+            ### esp checking weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_checking,
+                ESP_revenue_predictions.checking_weekly_rev(),
+                self.time_series_esp_checking_total_weekly_rev,self.time_series_esp_checking_rev_per_customer)
 
 
             one_week_increment = self.env.timeout(1)
@@ -251,6 +303,19 @@ class ESP_Accelerator_Stripe_flow(object):
         #print('  Users :', resource.users)
         print('  Queued events:', resource.queue)
         print()
+
+    def get_weekly_gp(self,week_n, time_series, gp_data_function, total_rev_week,
+                      rev_per_client_week):
+        """Get the total revenue for the week, and revenue per client, for a
+        given product"""
+        total_weekly_rev= 0
+        for esp_customer in range(time_series[week_n][2]):
+            total_weekly_rev += gp_data_function
+        # total value of the product
+        total_rev_week.append( ('week = ',week_n, total_weekly_rev))
+        # average value per customer
+        rev_per_client_week.append( ('week = ',week_n,total_weekly_rev  / \
+             time_series[week_n][2]))
 
     def esp_open_money_market_bonus(self, client):
         """This is a simpy process for opening a money market bonus account"""
@@ -465,3 +530,31 @@ if __name__ == "__main__":
                 esp_accel_stripe_flow .time_series_esp_enterprise_sweep))
     print("Time series of esp checking {} ".format(
             esp_accel_stripe_flow .time_series_esp_checking))
+    print("Total rgp for esp money market bonus per week {}".format(
+    esp_accel_stripe_flow .time_series_esp_money_market_bonus_total_weekly_rev))
+    print("GP per custome rfor esp money market bonus per week {}".format(
+        esp_accel_stripe_flow.time_series_esp_money_market_bonus_rev_per_customer
+    ))
+    print("GP per total {} and per customer for collateral MMA  {}".format(
+            esp_accel_stripe_flow.time_series_esp_collateral_mma_total_weekly_rev,
+            esp_accel_stripe_flow.time_series_esp_collateral_mma_rev_per_customer
+    ))
+    print('GP for cash management total {} and gp cash management per customer {}'.format(
+        esp_accel_stripe_flow.time_series_esp_cash_management_total_weekly_rev,
+        esp_accel_stripe_flow.time_series_esp_cash_management_rev_per_customer
+    ))
+    print(' GP for fx total {} and fx per client {}'.format(
+        esp_accel_stripe_flow.time_series_esp_fx_total_weekly_rev,
+        esp_accel_stripe_flow.time_series_esp_fx_rev_per_customer))
+    print('GP fox letters of credit toal {} and gp for letters of credit per customer {}'.format(
+    esp_accel_stripe_flow.time_series_esp_letters_of_credit_total_weekly_rev,
+                esp_accel_stripe_flow.time_series_esp_letters_of_credit_rev_per_customer
+    ))
+    print('GP for enterprise sweep total {} and enterprise sweep gP per client{}'.format(
+            esp_accel_stripe_flow.time_series_esp_enterprise_sweep_total_weekly_rev,
+            esp_accel_stripe_flow.time_series_esp_enterprise_sweep_rev_per_customer
+    ))
+print('GP for checking total {} and checking per client per week {} '.format(
+        esp_accel_stripe_flow.time_series_esp_checking_total_weekly_rev,
+        esp_accel_stripe_flow.time_series_esp_checking_rev_per_customer
+))

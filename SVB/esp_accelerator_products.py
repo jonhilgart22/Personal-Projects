@@ -11,7 +11,7 @@ esp_eligible_products = ['Money Market Bonus','Collateral MMA'
 
 
 class ESP_revenue_predictions(object):
-    """Generate revenue predictions for a given esp product"""
+    """Generate weekly revenue predictions for a given esp product"""
     def __init__(self):
         pass
 
