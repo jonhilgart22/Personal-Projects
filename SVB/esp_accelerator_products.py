@@ -1,7 +1,7 @@
 #! usr/bin/env python
 import scipy.stats as stats
 
-esp_eligible_products = ['Money Market Bonus','Collateral MMA'
+esp_eligible_products = ['Money Market Bonus','Collateral MMA',
 'Cash Management',
 'FX Products',
 'Letters of Credit',
