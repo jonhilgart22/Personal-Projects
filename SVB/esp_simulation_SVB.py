@@ -36,13 +36,13 @@ class Client(object):
         self.esp_open_checking_request = None
 
 
-        self.have_mmb = None
-        self.have_cmma = None
-        self.have_cm = None
-        self.have_fx = None
-        self.have_loc = None
-        self.have_es = None
-        self.have_checking = None
+        self.have_mmb = False
+        self.have_cmma = False
+        self.have_cm = False
+        self.have_fx = False
+        self.have_loc = False
+        self.have_es = False
+        self.have_checking = False
 
         self.client_age = None
 
@@ -97,10 +97,8 @@ class ESP_Accelerator_Stripe_flow(object):
         self.esp_enterprise_sweep_resource = simpy.Resource(env, capacity=esp_open_enterprise_sweep_capacity )
         self.esp_checking_resource = simpy.Resource(env, capacity= esp_open_checking_capacity )
 
-        #self.credit_card_resource = simpy.Resource(env, capacity=cc_capacity)
-        #self.esp_team_resource =  simpy.Resource(env, capacity=esp_capacity)
-        #self.accelerator_team_resource =  simpy.Resource(env, capacity=acceleartor_capacity)
-        #self.stripe_team_resource = simpy.Resource(env, capacity=stripe_capacity)
+        self.time_series_total_clients = []
+        self.time_series_cumulative_clients = []
 
         self.time_series_esp_money_market_bonus = []
         self.time_series_esp_collateral_mma = []
@@ -126,13 +124,6 @@ class ESP_Accelerator_Stripe_flow(object):
         self.time_series_esp_enterprise_sweep_rev_per_customer = []
         self.time_series_esp_checking_rev_per_customer = []
 
-
-        #self.time_series_client_with_bankaccount = []
-        #self.time_series_client_with_cc = []
-        #self.env = env
-        #self.client_lifetimes = []
-
-        #self.list_of_all_clients = []
 
     def esp_clients_per_week(self,mean=20.433962264150942, std=3.5432472792051746):
         """This generates the number of new clients in ESP for a given week.
@@ -202,21 +193,44 @@ class ESP_Accelerator_Stripe_flow(object):
         This function steps through the simulated time one week at a time
         and keeps track of the number of clients at each node during this simulation.
 
-        This function calls sub functions 'open bank account' and 'close bank
-        account' with a simpy process wrapper to keep track of the time for each.
+        This function looks at the probabilities associated with each product
+        via a dynamic Markov Model (where the edges represent joint probabilities
+        between products that are updated every week). These probabilities are used
+        to infer the probability of a client having each product given evidence
+        about the other products that client has.
 
-        In addition, this function keep a class accumulator for the total number
-        of customers that have a bank account at any given time. This
-        can be used to calculate the LTV for these customers.
+        This function keeps track of the total number of clients over time,
+        the total number of clients for the seven ESP products, the total
+        GP per week per product, and the GP per client per product (adjusted
+        to be in NPV).
+
+        In addition, each client lifetime, which is drawn from an exponential
+        distribution, is represented by a simpy process. Once a client churns,
+        they are no longer counted in each of the products that used to hold.
+
 
         """
         for week_n in range(self.number_of_weeks_to_run):
             print("Starting WEEK NUMBER {}".format(week_n))
-            ## generate new clients for each channel
-            self.esp_clients_per_week(esp_mean,esp_std)
+            # generate new clients for each channel
+            self.esp_clients_per_week(esp_mean, esp_std)
             self.accelerator_clients_per_week(accel_mean, accel_std)
             self.stripe_clients_per_week(stripe_mean, stripe_std)
             print(self.oneweek_esp_clients, ' ESP clients this week')
+            # Keep track of the total number of clients over time
+            self.time_series_total_clients.append(
+                ('Total clients IN ESP for Week = ', week_n, self.oneweek_esp_clients))
+            # Total number of clients
+            if week_n == 0:
+                self.time_series_cumulative_clients.append(
+                    ('ESP cumulative clients for week =', week_n,
+                     self.oneweek_esp_clients))
+            else:
+                # add in previous weeks clients
+                self.time_series_cumulative_clients.append(('ESP cumulative clients\
+                    for week =', week_n, self.oneweek_esp_clients + \
+                    self.time_series_cumulative_clients[week_n-1][2] ))
+
             # print(self.oneweek_accelerator_clients, "acceleartor clinets this week")
             # print(self.oneweek_stripe_clients, ' stripe clients this week')
 
@@ -236,10 +250,8 @@ class ESP_Accelerator_Stripe_flow(object):
                 self.list_of_all_clients.append(esp_client)
 
             for idx,client in enumerate(self.list_of_all_clients):
-                #client = client[0] # tuple of client , client client id
-
                 # print client lifetime (see when clients are closing accounts)
-                if client.client_lifetime < 10:
+                if idx % 10 == 0:
                     print('Client {} lifetime = {}'.format(client.client_id,
                                                            client.client_lifetime))
 
@@ -258,79 +270,99 @@ class ESP_Accelerator_Stripe_flow(object):
                     ESP_Markov_Model_Joint_Prob(ESP_Joint_Product_Probabilities,
                             single=True,week_n_one_time=client.client_age)
 
-                    ## See if a client has each product
-                    client.have_checking = np.random.choice([1,0],p=np.array(
+                    # See if a client has each product
+                    open_checking = np.random.choice([1,0],p=np.array(
                         [checking_prob,(1-checking_prob)]))
-                    client.have_cmma = np.random.choice([1,0],p=np.array(
+                    open_cmma = np.random.choice([1,0],p=np.array(
                         [cmma_prob,(1-cmma_prob)]))
-                    client.have_mmb = np.random.choice([1,0],p=np.array(
+                    open_mmb = np.random.choice([1,0],p=np.array(
                         [mmb_prob,(1-mmb_prob)]))
-                    client.have_cm = np.random.choice([1,0],p=np.array(
+                    open_cm = np.random.choice([1,0],p=np.array(
                         [cm_prob,(1-cm_prob)]))
-                    client.have_fx = np.random.choice([1,0],p=np.array(
+                    open_fx = np.random.choice([1,0],p=np.array(
                         [fx_prob,(1-fx_prob)]))
-                    client.have_loc = np.random.choice([1,0],p=np.array(
+                    open_loc = np.random.choice([1,0],p=np.array(
                         [loc_prob,(1-loc_prob)]))
-                    client.have_es = np.random.choice([1,0],p=np.array(
+                    open_es = np.random.choice([1,0],p=np.array(
                         [es_prob,(1-es_prob)]))
 
-                    # open an account if a client has each product if not
-                    # have a default event to yield to
 
-                    if client.have_checking == 1:
-                        open_checking = self.env.process(self.esp_open_checking(esp_client))
+                    # open an account if a client has each product
+                    # Otherwise, add a default event to yield
+                    if open_checking == 1:
+                        if client.have_checking == False:
+                            open_checking = self.env.process(self.esp_open_checking(esp_client))
+                        else:
+                            open_checking = self.env.timeout(0)
                         # either open product or
                     else:
                         open_checking = self.env.timeout(0)
-                    if client.have_cmma == 1:
-                        open_cmma = self.env.process(
-                            self.esp_open_collateral_mma(esp_client))
+                    if open_cmma == 1:
+                        if client.have_cmma == False:
+                            open_cmma = self.env.process(
+                                self.esp_open_collateral_mma(esp_client))
+                        else:
+                            open_cmma = self.env.timeout(0)
                         # yield close_accounts |open_cmma
                     else:
                         open_cmma = self.env.timeout(0)
-                    if client.have_mmb ==1:
-                        open_mmb = self.env.process(
-                            self.esp_open_money_market_bonus(esp_client))
-                        # yield close_accounts | open_mmb
+                    if open_mmb ==1:
+                        if client.have_mmb == False:
+                            open_mmb = self.env.process(
+                                self.esp_open_money_market_bonus(esp_client))
+                        else:
+                            open_mmb = self.env.timeout(0)
                     else:
                         open_mmb = self.env.timeout(0)
-                    if client.have_cm == 1:
-                        open_cm = self.env.process(
-                            self.esp_open_cash_management(esp_client))
+                    if open_cm == 1:
+                        if client.have_cm == False:
+                            open_cm = self.env.process(
+                                self.esp_open_cash_management(esp_client))
+                        else:
+                            open_cm = self.env.timeout(0)
                         # yield close_accounts | open_cm
                     else:
                         open_cm = self.env.timeout(0)
-                    if client.have_fx == 1:
-                        open_fx = self.env.process(self.esp_open_fx(esp_client))
+                    if open_fx == 1:
+                        if client.have_fx == False:
+                            open_fx = self.env.process(self.esp_open_fx(esp_client))
+                        else:
+                            open_fx = self.env.timeout(0)
                         # yield close_accounts |open_fx
                     else:
                         open_fx = self.env.timeout(0)
-                    if client.have_loc == 1:
-                        open_loc = self.env.process(
-                            self.esp_open_letters_of_credit(esp_client))
+                    if open_loc == 1:
+                        if client.hav_fx == False:
+
+                            open_loc = self.env.process(
+                                self.esp_open_letters_of_credit(esp_client))
+                        else:
+                            open_loc = self.env.timeout(0)
                         # yield close_accounts | open_loc
                     else:
                         open_loc = self.env.timeout(0)
-                    if client.have_es == 1:
-                        open_es = self.env.process(
-                            self.esp_open_enterprise_sweep(esp_client))
+                    if open_es == 1:
+                        if client.hav_es == False:
+                            open_es = self.env.process(
+                                self.esp_open_enterprise_sweep(esp_client))
+                        else:
+                            open_es = self.env.timeout(0)
                         # yield close_accounts | open_es
                     else:
                         open_es = self.env.timeout(0)
-                    # either open product or close account
-                    # only yield closing accoutns ONCE (otherwise, Simpy
-                    # will try to close the same client multiple times
+                    # either open product or close the account
                     yield (open_checking &open_cmma & open_mmb & open_cm \
                            &open_fx & open_loc & open_es) | client.close_account_process
+
 
                     client.client_age +=1  # increment the age of the client
 
                 else:
                     # every client now has an indicator for if they have
                     # a product or not
-                    if idx % 5 ==0 :
+                    if idx % 10 ==0 :
                         ## print out stats of every 10th client
-                        print(client.client_id, ' client id')
+                        print(client.client_id, ' client id ')
                         print(client.client_age,'client age')
                         print(client.have_mmb, ' client.have_mmb')
                         print(client.have_cmma, 'client.have_cmma')
@@ -367,60 +399,81 @@ class ESP_Accelerator_Stripe_flow(object):
 
 
                     ## See if a client has each product
-                    client.have_checking = np.random.choice([1,0],p=np.array(
+                    open_checking = np.random.choice([1,0],p=np.array(
                         [checking_prob,(1-checking_prob)]))
-                    client.have_cmma = np.random.choice([1,0],p=np.array(
+                    open_cmma = np.random.choice([1,0],p=np.array(
                         [cmma_prob,(1-cmma_prob)]))
-                    client.have_mmb = np.random.choice([1,0],p=np.array(
+                    open_mmb = np.random.choice([1,0],p=np.array(
                         [mmb_prob,(1-mmb_prob)]))
-                    client.have_cm = np.random.choice([1,0],p=np.array(
+                    open_cm = np.random.choice([1,0],p=np.array(
                         [cm_prob,(1-cm_prob)]))
-                    client.have_fx = np.random.choice([1,0],p=np.array(
+                    open_fx = np.random.choice([1,0],p=np.array(
                         [fx_prob,(1-fx_prob)]))
                     client.have_loc = np.random.choice([1,0],p=np.array(
                         [loc_prob,(1-loc_prob)]))
-                    client.have_es = np.random.choice([1,0],p=np.array(
+                    open_es = np.random.choice([1,0],p=np.array(
                         [es_prob,(1-es_prob)]))
 
                     # open an account if a client has each product
                     # Otherwise, add a default event to yield
-                    if client.have_checking == 1:
-                        open_checking = self.env.process(self.esp_open_checking(esp_client))
+                    if open_checking == 1:
+                        if client.have_checking == False:
+                            open_checking = self.env.process(self.esp_open_checking(esp_client))
+                        else:
+                            open_checking = self.env.timeout(0)
                         # either open product or
                     else:
                         open_checking = self.env.timeout(0)
-                    if client.have_cmma == 1:
-                        open_cmma = self.env.process(
-                            self.esp_open_collateral_mma(esp_client))
+                    if open_cmma == 1:
+                        if client.have_cmma == False:
+                            open_cmma = self.env.process(
+                                self.esp_open_collateral_mma(esp_client))
+                        else:
+                            open_cmma = self.env.timeout(0)
                         # yield close_accounts |open_cmma
                     else:
                         open_cmma = self.env.timeout(0)
-                    if client.have_mmb ==1:
-                        open_mmb = self.env.process(
-                            self.esp_open_money_market_bonus(esp_client))
-                        # yield close_accounts | open_mmb
+                    if open_mmb ==1:
+                        if client.have_mmb == False:
+                            open_mmb = self.env.process(
+                                self.esp_open_money_market_bonus(esp_client))
+                        else:
+                            open_mmb = self.env.timeout(0)
                     else:
                         open_mmb = self.env.timeout(0)
-                    if client.have_cm == 1:
-                        open_cm = self.env.process(
-                            self.esp_open_cash_management(esp_client))
+                    if open_cm == 1:
+                        if client.have_cm == False:
+                            open_cm = self.env.process(
+                                self.esp_open_cash_management(esp_client))
+                        else:
+                            open_cm = self.env.timeout(0)
                         # yield close_accounts | open_cm
                     else:
                         open_cm = self.env.timeout(0)
-                    if client.have_fx == 1:
-                        open_fx = self.env.process(self.esp_open_fx(esp_client))
+                    if open_fx == 1:
+                        if client.have_fx == False:
+                            open_fx = self.env.process(self.esp_open_fx(esp_client))
+                        else:
+                            open_fx = self.env.timeout(0)
                         # yield close_accounts |open_fx
                     else:
                         open_fx = self.env.timeout(0)
-                    if client.have_loc == 1:
-                        open_loc = self.env.process(
-                            self.esp_open_letters_of_credit(esp_client))
+                    if open_loc == 1:
+                        if client.hav_fx == False:
+
+                            open_loc = self.env.process(
+                                self.esp_open_letters_of_credit(esp_client))
+                        else:
+                            open_loc = self.env.timeout(0)
                         # yield close_accounts | open_loc
                     else:
                         open_loc = self.env.timeout(0)
-                    if client.have_es == 1:
-                        open_es = self.env.process(
-                            self.esp_open_enterprise_sweep(esp_client))
+                    if open_es == 1:
+                        if client.hav_es == False:
+                            open_es = self.env.process(
+                                self.esp_open_enterprise_sweep(esp_client))
+                        else:
+                            open_es = self.env.timeout(0)
                         # yield close_accounts | open_es
                     else:
                         open_es = self.env.timeout(0)
@@ -428,11 +481,11 @@ class ESP_Accelerator_Stripe_flow(object):
                     yield (open_checking &open_cmma & open_mmb & open_cm \
                            &open_fx & open_loc & open_es) | client.close_account_process
 
-                    client.client_age +=1 ## increment the age of the client
+                    client.client_age +=1 # increment the age of the client
 
-            ## go through clients to see if they have churned
+            # go through clients to see if they have churned
 
-            ## add in the number of clients for each week
+            # add in the number of clients for each week
             print()
             print('WEEK METRICS {}'.format(week_n))
             print(self.esp_money_market_bonus_resource.count,'esp mmb clients ')
@@ -443,63 +496,64 @@ class ESP_Accelerator_Stripe_flow(object):
             print(self.esp_enterprise_sweep_resource.count, 'es count')
             print(self.esp_checking_resource.count , 'checking count')
             print()
+
+
+            # At the end of each week, record the number of clients per
+            # product
+            self.time_series_esp_money_market_bonus.append(("Week = ",
+                self.env.now,self.esp_money_market_bonus_resource.count))
+            self.time_series_esp_collateral_mma.append(("Week = ",
+                self.env.now,self.esp_collateral_mma_resource.count))
+            self.time_series_esp_cash_management.append(("Week = ",
+                self.env.now,self.esp_cash_management_resource.count))
+            self.time_series_esp_fx.append(("Week = ",
+                self.env.now,self.esp_fx_resource.count))
+            self.time_series_esp_letters_of_credit.append(("Week = ",
+                self.env.now,self.esp_letters_of_credit_resource.count))
+            self.time_series_esp_enterprise_sweep.append(("Week = ",
+                self.env.now,self.esp_enterprise_sweep_resource.count))
+            self.time_series_esp_checking.append(("Week = ",
+                self.env.now,self.esp_checking_resource.count))
+            # At the end of each week, find the weekly GP and weekly GP per client
+            # esp money market bonus weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_money_market_bonus,
+                ESP_revenue_predictions.money_market_bonus_weekly_rev(),
+                self.time_series_esp_money_market_bonus_total_weekly_rev,
+                self.time_series_esp_money_market_bonus_rev_per_customer)
+            # esp collateral mma weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_collateral_mma,
+                ESP_revenue_predictions.collateral_mma_weekly_rev(),
+                self.time_series_esp_collateral_mma_total_weekly_rev,
+                self.time_series_esp_collateral_mma_rev_per_customer)
+            # esp cash management weekly revenue
+            self.get_weekly_gp(week_n, self.time_series_esp_cash_management,
+                ESP_revenue_predictions.cash_management_weekly_rev(),
+                self.time_series_esp_cash_management_total_weekly_rev,
+                self.time_series_esp_cash_management_rev_per_customer)
+            ### esp fx weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_fx,
+                ESP_revenue_predictions.fx_weekly_rev(),
+                self.time_series_esp_fx_total_weekly_rev,
+                self.time_series_esp_fx_rev_per_customer)
+            ### esp letters of credit
+            self.get_weekly_gp(week_n, self.time_series_esp_letters_of_credit,
+                ESP_revenue_predictions.letters_of_credit_weekly_rev(),
+                self.time_series_esp_letters_of_credit_total_weekly_rev,
+                self.time_series_esp_letters_of_credit_rev_per_customer)
+            ### esp enterprise sweep weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_enterprise_sweep,
+                ESP_revenue_predictions.enterprise_sweep_weekly_rev(),
+                self.time_series_esp_enterprise_sweep_total_weekly_rev,
+                self.time_series_esp_enterprise_sweep_rev_per_customer)
+            ### esp checking weekly gp
+            self.get_weekly_gp(week_n, self.time_series_esp_checking,
+                ESP_revenue_predictions.checking_weekly_rev(),
+                self.time_series_esp_checking_total_weekly_rev,
+                self.time_series_esp_checking_rev_per_customer)
+
             # Increment by one week
             one_week_increment = self.env.timeout(1)
             yield one_week_increment
-            print(self.env.now, 'time now ENV')
-
-        # At the end of each week, find the weekly GP and weekly GP per client
-        self.time_series_esp_money_market_bonus.append(("Week = ",
-            self.env.now,self.esp_money_market_bonus_resource.count))
-
-        self.time_series_esp_collateral_mma.append(("Week = ",
-            self.env.now,self.esp_collateral_mma_resource.count))
-        self.time_series_esp_cash_management.append(("Week = ",
-            self.env.now,self.esp_cash_management_resource.count))
-        self.time_series_esp_fx.append(("Week = ",
-            self.env.now,self.esp_fx_resource.count))
-        self.time_series_esp_letters_of_credit.append(("Week = ",
-            self.env.now,self.esp_letters_of_credit_resource.count))
-        self.time_series_esp_enterprise_sweep.append(("Week = ",
-            self.env.now,self.esp_enterprise_sweep_resource.count))
-        self.time_series_esp_checking.append(("Week = ",
-            self.env.now,self.esp_checking_resource.count))
-
-        ### esp money market bonus weekly gp
-        self.get_weekly_gp(week_n, self.time_series_esp_money_market_bonus,
-            ESP_revenue_predictions.money_market_bonus_weekly_rev(),
-            self.time_series_esp_money_market_bonus_total_weekly_rev,
-            self.time_series_esp_money_market_bonus_rev_per_customer)
-        ### esp collateral mma weekly gp
-        self.get_weekly_gp(week_n, self.time_series_esp_collateral_mma,
-            ESP_revenue_predictions.collateral_mma_weekly_rev(),
-            self.time_series_esp_collateral_mma_total_weekly_rev,
-            self.time_series_esp_collateral_mma_rev_per_customer)
-        ### esp cash management weekly revenue
-        self.get_weekly_gp(week_n, self.time_series_esp_cash_management,
-            ESP_revenue_predictions.cash_management_weekly_rev(),
-            self.time_series_esp_cash_management_total_weekly_rev,
-            self.time_series_esp_cash_management_rev_per_customer)
-        ### esp fx weekly gp
-        self.get_weekly_gp(week_n, self.time_series_esp_fx,
-            ESP_revenue_predictions.fx_weekly_rev(),
-            self.time_series_esp_fx_total_weekly_rev,
-            self.time_series_esp_fx_rev_per_customer)
-        ### esp letters of credit
-        self.get_weekly_gp(week_n, self.time_series_esp_letters_of_credit,
-            ESP_revenue_predictions.letters_of_credit_weekly_rev(),
-            self.time_series_esp_letters_of_credit_total_weekly_rev,
-            self.time_series_esp_letters_of_credit_rev_per_customer)
-        ### esp enterprise sweep weekly gp
-        self.get_weekly_gp(week_n, self.time_series_esp_enterprise_sweep,
-            ESP_revenue_predictions.enterprise_sweep_weekly_rev(),
-            self.time_series_esp_enterprise_sweep_total_weekly_rev,
-            self.time_series_esp_enterprise_sweep_rev_per_customer)
-        ### esp checking weekly gp
-        self.get_weekly_gp(week_n, self.time_series_esp_checking,
-            ESP_revenue_predictions.checking_weekly_rev(),
-            self.time_series_esp_checking_total_weekly_rev,
-            self.time_series_esp_checking_rev_per_customer)
 
 
 
@@ -556,20 +610,25 @@ class ESP_Accelerator_Stripe_flow(object):
     def get_weekly_gp(self,week_n, time_series, gp_data_function, total_rev_week,
                       rev_per_client_week):
         """Get the total revenue for the week, and revenue per client, for a
-        given product"""
-        total_weekly_rev= 0
-        #print(time_series, ' time series')
-        if time_series[week_n][2] ==0:
+        given product.
+        Also, adjusts the revenue to be in week zero through net
+        present value."""
+        total_weekly_rev = 0
+        number_of_customer_for_product_week = time_series[week_n][2]
+        print(number_of_customer_for_product_week,' customer for this product')
+        if number_of_customer_for_product_week  == 0: # No customer this week for this product
             total_rev_week.append( ('week = ',week_n, 0))
             rev_per_client_week.append( ('week = ',week_n,0))
 
         else:
-            for esp_customer in range(time_series[week_n][2]):
+
+            for esp_customer in range(number_of_customer_for_product_week ):
                 total_weekly_rev += gp_data_function
                 # total value of the product
-                total_rev_week.append( ('week = ',week_n, total_weekly_rev))
+            print(total_weekly_rev, ' total rev for product')
+            total_rev_week.append( ('week = ',week_n, total_weekly_rev))
                 # average value per customer
-                rev_per_client_week.append( ('week = ',week_n,total_weekly_rev  / \
+            rev_per_client_week.append( ('week = ',week_n,total_weekly_rev  / \
                      time_series[week_n][2]))
 
     def esp_open_money_market_bonus(self, client):
@@ -580,9 +639,12 @@ class ESP_Accelerator_Stripe_flow(object):
         # insert numpy random choice here for probability of a customer
         # opening a money market bonus account
 
+
         open_mmb = self.esp_money_market_bonus_resource.request()
         # Wait until its our turn or until or the customer churns
         yield open_mmb
+        client.have_mmb = True
+        client.esp_open_money_market_bonus_request = open_mmb
 
         ###### POSSIBLY YIELD TIME HERE BEFORE NEXT PROCESS?###
 
@@ -590,7 +652,7 @@ class ESP_Accelerator_Stripe_flow(object):
         #                         client.client_id, self.env.now))
             ## keep track of the number of people with bank accounts
         #self.monitor_resource(self.esp_money_market_bonus_resource,'money-market-bonus-esp')
-        client.esp_open_money_market_bonus_request = open_mmb
+
 
     def esp_open_collateral_mma(self, client):
         """This is a simpy process for opening a open collateral mma accounts
@@ -600,6 +662,10 @@ class ESP_Accelerator_Stripe_flow(object):
         open_cmma = self.esp_collateral_mma_resource.request()
         # Wait until its our turn or until or the customer churns
         yield open_cmma
+        client.have_cmma = True
+        client.esp_open_collateral_mma = open_cmma
+
+
 
         ###### POSSIBLY YIELD TIME HERE BEFORE NEXT PROCESS?###
 
@@ -607,16 +673,19 @@ class ESP_Accelerator_Stripe_flow(object):
         #                         client.client_id, self.env.now))
             ## keep track of the number of people with bank accounts
         #self.monitor_resource(self.esp_collateral_mma_resource, 'collateral mma-esp')
-        client.esp_open_collateral_mma = open_cmma
+
 
     def esp_open_cash_management(self, client):
         """This is a simpy process for opening a cash management checking account
         Also, append the resource request for simpy to the client object.
         This will let us release this resource request later"""
 
+
         open_cmc = self.esp_cash_management_resource.request()
         # Wait until its our turn or until or the customer churns
         yield open_cmc
+        client.have_cm = True
+        client.esp_open_cash_management_request = open_cmc
 
         ###### POSSIBLY YIELD TIME HERE BEFORE NEXT PROCESS?###
 
@@ -624,16 +693,19 @@ class ESP_Accelerator_Stripe_flow(object):
         #                         client.client_id, self.env.now))
             ## keep track of the number of people with bank accounts
         #self.monitor_resource(self.esp_cash_management_resource,'cash_managementesp')
-        client.esp_open_cash_management_request = open_cmc
+
 
     def esp_open_fx(self, client):
         """This is a simpy process for opening a fx-account account
         Also, append the resource request for simpy to the client object.
         This will let us release this resource request later"""
 
+
         open_fx = self.esp_fx_resource.request()
         # Wait until its our turn or until or the customer churns
         yield open_fx
+        client.have_fx = True
+        client.esp_open_fx_request = open_fx
 
         ###### POSSIBLY YIELD TIME HERE BEFORE NEXT PROCESS?###
 
@@ -641,16 +713,19 @@ class ESP_Accelerator_Stripe_flow(object):
         #                         client.client_id, self.env.now))
             ## keep track of the number of people with bank accounts
         #self.monitor_resource(self.esp_fx_resource,'fx-esp')
-        client.esp_open_fx_request = open_fx
+
 
     def esp_open_letters_of_credit(self, client):
         """This is a simpy process for opening a letters of credit
         Also, append the resource request for simpy to the client object.
         This will let us release this resource request later"""
 
+
         open_letter_credit = self.esp_letters_of_credit_resource.request()
         # Wait until its our turn or until or the customer churns
         yield open_letter_credit
+        client.have_loc = True
+        client.esp_open_letters_of_credit_request = open_letter_credit
 
         ###### POSSIBLY YIELD TIME HERE BEFORE NEXT PROCESS?###
 
@@ -658,16 +733,19 @@ class ESP_Accelerator_Stripe_flow(object):
         #                         client.client_id, self.env.now))
             ## keep track of the number of people with bank accounts
         #self.monitor_resource(self.esp_letters_of_credit_resource,'letter credit-esp')
-        client.esp_open_letters_of_credit_request = open_letter_credit
+
 
     def esp_open_enterprise_sweep(self, client):
         """This is a simpy process for opening a letters of credit
         Also, append the resource request for simpy to the client object.
         This will let us release this resource request later"""
 
+
         open_es = self.esp_enterprise_sweep_resource.request()
         # Wait until its our turn or until or the customer churns
         yield open_es
+        client.have_es = True
+        client.esp_open_enterprise_sweep_request = open_es
 
         ###### POSSIBLY YIELD TIME HERE BEFORE NEXT PROCESS?###
 
@@ -675,7 +753,7 @@ class ESP_Accelerator_Stripe_flow(object):
         #                         client.client_id, self.env.now))
             ## keep track of the number of people with bank accounts
         #self.monitor_resource(self.esp_letters_of_credit_resource,'enterprise sweep-esp')
-        client.esp_open_enterprise_sweep_request = open_es
+
 
 
     def esp_open_checking(self, client):
@@ -686,6 +764,8 @@ class ESP_Accelerator_Stripe_flow(object):
         open_checking = self.esp_checking_resource.request()
         # Wait until its our turn or until or the customer churns
         yield open_checking
+        client.have_checking = True
+        client.esp_open_checking_request = open_checking
 
         ###### POSSIBLY YIELD TIME HERE BEFORE NEXT PROCESS?###
 
@@ -693,7 +773,7 @@ class ESP_Accelerator_Stripe_flow(object):
         #                         client.client_id, self.env.now))
             ## keep track of the number of people with bank accounts
         #self.monitor_resource(self.esp_checking_resource, 'checking esp')
-        client.esp_open_checking_request = open_checking
+
 
 
     def close_accounts(self, client):
@@ -811,7 +891,12 @@ if __name__ == "__main__":
     print("SUMMARY STATISTICS")
     print('Finished at time {}'.format(env.now))
 
-
+    print('Time series of total clients over time = {}'.format(
+        esp_accel_stripe_flow.time_series_total_clients
+    ))
+    print('Time series of cumulative clients over time = {}'.format(
+        esp_accel_stripe_flow.time_series_cumulative_clients
+    ))
     print("Time series of esp money market bonus {} ".format(
         esp_accel_stripe_flow .time_series_esp_money_market_bonus))
     print("Time series of esp collateral mma {} ".format(
@@ -831,28 +916,34 @@ if __name__ == "__main__":
     print("GP per custome rfor esp money market bonus per week {}".format(
         esp_accel_stripe_flow.time_series_esp_money_market_bonus_rev_per_customer
     ))
+    print()
     print("GP per total {} and per customer for collateral MMA  {}".format(
             esp_accel_stripe_flow.time_series_esp_collateral_mma_total_weekly_rev,
             esp_accel_stripe_flow.time_series_esp_collateral_mma_rev_per_customer
     ))
+    print()
     print('GP for cash management total {} and gp cash management per customer {}'.format(
         esp_accel_stripe_flow.time_series_esp_cash_management_total_weekly_rev,
         esp_accel_stripe_flow.time_series_esp_cash_management_rev_per_customer
     ))
+    print()
     print(' GP for fx total {} and fx per client {}'.format(
         esp_accel_stripe_flow.time_series_esp_fx_total_weekly_rev,
         esp_accel_stripe_flow.time_series_esp_fx_rev_per_customer))
+    print()
     print('GP fox letters of credit toal {} and gp for letters of credit per customer {}'.format(
     esp_accel_stripe_flow.time_series_esp_letters_of_credit_total_weekly_rev,
                 esp_accel_stripe_flow.time_series_esp_letters_of_credit_rev_per_customer
     ))
+    print()
     print('GP for enterprise sweep total {} and enterprise sweep gP per client{}'.format(
             esp_accel_stripe_flow.time_series_esp_enterprise_sweep_total_weekly_rev,
             esp_accel_stripe_flow.time_series_esp_enterprise_sweep_rev_per_customer
     ))
+    print()
     print('GP for checking total {} and checking per client per week {} '.format(
             esp_accel_stripe_flow.time_series_esp_checking_total_weekly_rev,
             esp_accel_stripe_flow.time_series_esp_checking_rev_per_customer
     ))
     end = time.time()
-    print('{} weeks tooks {}'.format(n_weeks_run,end-start))
+    print('{} weeks tooks {} seconds'.format(n_weeks_run,end-start))

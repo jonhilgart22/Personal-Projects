@@ -99,4 +99,5 @@ if __name__ == '__main__':
     print('weekly ESP enterprise sweep GP' ,
               ESP_revenue_predictions.enterprise_sweep_weekly_rev())
     print('weekly ESP checking GP' ,
-              ESP_revenue_predictions.checking_weekly_rev())
+              [ESP_revenue_predictions.checking_weekly_rev() for _ in range(40)],
+              sum([ESP_revenue_predictions.checking_weekly_rev() for _ in range(40)]))
