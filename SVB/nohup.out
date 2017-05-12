@@ -1,0 +1,290 @@
+
+Starting simulation 0
+
+Starting WEEK NUMBER 0
+15.0  ESP clients this week
+Client 0-0 lifetime = 132.0
+0-0  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 10-0 lifetime = 24.0
+10-0  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+
+WEEK METRICS 0
+0 esp mmb clients 
+0  esp mma clients
+0  esp cm clients
+0 fx count
+0  loc count
+0 es count
+15 checking count
+
+662.519213511  total rev for product checking
+Starting WEEK NUMBER 1
+17.0  ESP clients this week
+Client 0-0 lifetime = 132.0
+0-0  client id 
+2 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 10-0 lifetime = 24.0
+10-0  client id 
+2 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 5-1 lifetime = 32.0
+5-1  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 15-1 lifetime = 40.0
+15-1  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+
+WEEK METRICS 1
+0 esp mmb clients 
+1  esp mma clients
+0  esp cm clients
+0 fx count
+0  loc count
+0 es count
+32 checking count
+
+20.3186678975  total rev for product cmma
+2137.24470926  total rev for product checking
+Starting WEEK NUMBER 2
+21.0  ESP clients this week
+Client 0-0 lifetime = 132.0
+0-0  client id 
+3 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+closing collateral mma
+Client 10-0 lifetime = 24.0
+10-0  client id 
+3 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 5-1 lifetime = 32.0
+5-1  client id 
+2 client age
+0  client.have_mmb
+1 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 15-1 lifetime = 40.0
+15-1  client id 
+2 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 8-2 lifetime = 12.0
+8-2  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 18-2 lifetime = 72.0
+18-2  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+
+WEEK METRICS 2
+1 esp mmb clients 
+2  esp mma clients
+0  esp cm clients
+0 fx count
+0  loc count
+0 es count
+53 checking count
+
+164.196811145  total rev for product mmb
+6.13436184411  total rev for product cmma
+3460.27619722  total rev for product checking
+Starting WEEK NUMBER 3
+20.0  ESP clients this week
+Client 0-0 lifetime = 132.0
+0-0  client id 
+4 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+closing money market bonus
+
+Starting simulation 0
+
+Starting WEEK NUMBER 0
+18.0  ESP clients this week
+Client 0-0 lifetime = 52.0
+0-0  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 10-0 lifetime = 32.0
+10-0  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+
+WEEK METRICS 0
+0 esp mmb clients 
+0  esp mma clients
+0  esp cm clients
+0 fx count
+0  loc count
+0 es count
+18 checking count
+
+1059.02494391  total rev for product checking
+Starting WEEK NUMBER 1
+20.0  ESP clients this week
+Client 0-0 lifetime = 52.0
+0-0  client id 
+2 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 10-0 lifetime = 32.0
+10-0  client id 
+2 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 2-1 lifetime = 40.0
+2-1  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 12-1 lifetime = 64.0
+12-1  client id 
+1 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+
+WEEK METRICS 1
+0 esp mmb clients 
+0  esp mma clients
+0  esp cm clients
+0 fx count
+0  loc count
+0 es count
+38 checking count
+
+2584.19914809  total rev for product checking
+Starting WEEK NUMBER 2
+19.0  ESP clients this week
+Client 0-0 lifetime = 52.0
+0-0  client id 
+3 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking
+Client 10-0 lifetime = 32.0
+10-0  client id 
+3 client age
+0  client.have_mmb
+0 client.have_cmma
+0 client.have_cm
+0  client.have_es
+0 client.have_fx
+0 client.have_loc
+1 client.have_checking

@@ -14,6 +14,23 @@ class ESP_revenue_predictions(object):
     """Generate weekly revenue predictions for a given esp product"""
     def __init__(self):
         pass
+    @staticmethod
+    def get_revenue(product):
+        """Get the revenue of associated products"""
+        if product == 'mmb':
+            return ESP_revenue_predictions.money_market_bonus_weekly_rev()
+        elif product == 'cmma':
+            return ESP_revenue_predictions.collateral_mma_weekly_rev()
+        elif product == 'cm':
+            return ESP_revenue_predictions.cash_management_weekly_rev()
+        elif product == 'fx':
+            return ESP_revenue_predictions.fx_weekly_rev()
+        elif product == 'loc':
+            return ESP_revenue_predictions.letters_of_credit_weekly_rev()
+        elif product == 'es':
+            return ESP_revenue_predictions.enterprise_sweep_weekly_rev()
+        elif product =='checking':
+            return ESP_revenue_predictions.checking_weekly_rev()
 
     @staticmethod
     def money_market_bonus_weekly_rev(mean =1.5021545626038255 ,
