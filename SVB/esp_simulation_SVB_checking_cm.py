@@ -829,8 +829,8 @@ if __name__ == "__main__":
     federal_funds_rate = .0075 # May 11, 2017
     inflation_rate = .025 # March 2017
     # Evidence for staring products
-    #starting_evidence = {'letters_of_credit':1,'checking_usd':1}
-    starting_evidence = None
+    starting_evidence = {'cash_management':1,'checking_usd':1}
+    #starting_evidence = None
     # keep a list of the data attributes over time
     times_series_all_clients = []
     times_series_cumulative_clients = []
@@ -968,52 +968,52 @@ if __name__ == "__main__":
 
 
     # Save the generated data
-    with open('data/time_series_all_clients', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_all_clients', 'wb') as fp:
         pickle.dump(times_series_all_clients, fp)
-    with open('data/times_series_cumulative_clients', 'wb') as fp:
+    with open('data-evidence-checking-cm/times_series_cumulative_clients', 'wb') as fp:
         pickle.dump(times_series_cumulative_clients, fp)
     # products
-    with open('data/time_series_money_market_bonus', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_money_market_bonus', 'wb') as fp:
         pickle.dump(time_series_money_market_bonus, fp)
-    with open('data/time_series_esp_collateral_mma ', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_collateral_mma ', 'wb') as fp:
         pickle.dump(time_series_esp_collateral_mma, fp)
-    with open('data/time_series_esp_cash_management', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_cash_management', 'wb') as fp:
         pickle.dump(time_series_esp_cash_management , fp)
-    with open('data/time_series_esp_fx', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_fx', 'wb') as fp:
         pickle.dump(time_series_esp_fx , fp)
-    with open('data/time_series_esp_letters_of_credit ', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_letters_of_credit ', 'wb') as fp:
         pickle.dump(time_series_esp_letters_of_credit  , fp)
-    with open('data/time_series_esp_enterprise_sweep', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_enterprise_sweep', 'wb') as fp:
         pickle.dump(time_series_esp_enterprise_sweep  , fp)
-    with open('data/time_series_esp_checking', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_checking', 'wb') as fp:
         pickle.dump(time_series_esp_checking , fp)
     # GP
-    with open('data/time_series_esp_money_market_bonus_total_weekly_rev', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_money_market_bonus_total_weekly_rev', 'wb') as fp:
         pickle.dump(time_series_esp_money_market_bonus_total_weekly_rev, fp)
-    with open('data/time_series_esp_money_market_bonus_rev_per_customer', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_money_market_bonus_rev_per_customer', 'wb') as fp:
         pickle.dump(time_series_esp_money_market_bonus_rev_per_customer,fp)
-    with open('data/time_series_esp_collateral_mma_total_weekly_rev', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_collateral_mma_total_weekly_rev', 'wb') as fp:
         pickle.dump(time_series_esp_collateral_mma_total_weekly_rev , fp)
-    with open('data/time_series_esp_collateral_mma_rev_per_customer', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_collateral_mma_rev_per_customer', 'wb') as fp:
         pickle.dump(time_series_esp_collateral_mma_rev_per_customer , fp)
-    with open('data/time_series_esp_cash_management_total_weekly_rev', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_cash_management_total_weekly_rev', 'wb') as fp:
         pickle.dump(time_series_esp_cash_management_total_weekly_rev  , fp)
-    with open('data/time_series_esp_cash_management_rev_per_customer', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_cash_management_rev_per_customer', 'wb') as fp:
         pickle.dump(time_series_esp_cash_management_rev_per_customer   , fp)
-    with open('data/time_series_esp_fx_total_weekly_rev', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_fx_total_weekly_rev', 'wb') as fp:
         pickle.dump(time_series_esp_fx_total_weekly_rev , fp)
 
-    with open('data/time_series_esp_fx_rev_per_customer', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_fx_rev_per_customer', 'wb') as fp:
         pickle.dump(time_series_esp_fx_rev_per_customer, fp)
-    with open('data/time_series_esp_letters_of_credit_total_weekly_rev', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_letters_of_credit_total_weekly_rev', 'wb') as fp:
         pickle.dump(time_series_esp_letters_of_credit_total_weekly_rev, fp)
-    with open('data/time_series_esp_letters_of_credit_rev_per_customer', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_letters_of_credit_rev_per_customer', 'wb') as fp:
         pickle.dump(time_series_esp_letters_of_credit_rev_per_customer, fp)
-    with open('data/time_series_esp_enterprise_sweep_total_weekly_rev', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_enterprise_sweep_total_weekly_rev', 'wb') as fp:
         pickle.dump(time_series_esp_enterprise_sweep_total_weekly_rev , fp)
-    with open('data/time_series_esp_enterprise_sweep_rev_per_customer', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_enterprise_sweep_rev_per_customer', 'wb') as fp:
         pickle.dump(time_series_esp_enterprise_sweep_rev_per_customer  , fp)
-    with open('data/time_series_esp_checking_total_weekly_rev', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_checking_total_weekly_rev', 'wb') as fp:
         pickle.dump(time_series_esp_checking_total_weekly_rev , fp)
-    with open('data/time_series_esp_checking_rev_per_customer', 'wb') as fp:
+    with open('data-evidence-checking-cm/time_series_esp_checking_rev_per_customer', 'wb') as fp:
         pickle.dump(time_series_esp_checking_rev_per_customer, fp)

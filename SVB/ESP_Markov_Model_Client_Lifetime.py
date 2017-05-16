@@ -513,13 +513,14 @@ def ESP_Markov_Model_Joint_Prob(esp_money_market_jointprob_probabilities,week_n_
 
 
 if __name__ == '__main__':
-    week_n = 46
+    week_n = 1
     checking_prob, cmma_prob, mmb_prob, cm_prob, fx_prob ,loc_prob, es_prob = \
     ESP_Markov_Model_Joint_Prob(ESP_Joint_Product_Probabilities,single=True,
                                 week_n_one_time=week_n,
-                                evidence_={'money_market_bonus':0,'collateral_mma':0,
-                                                       'cash_management':0,'enterprise_sweep':0,
-                                    'fx_products':0,'letters_of_credit':0,'checking_usd':1})
+                                evidence_ = {'checking_usd':1,'money_market_bonus':1})
+                                # evidence_={'money_market_bonus':0,'collateral_mma':0,
+                                #                        'cash_management':0,'enterprise_sweep':0,
+                                #     'fx_products':0,'letters_of_credit':0,'checking_usd':1})
     print(checking_prob, ' checking prob')
     print(cmma_prob,'cmma prob')
     print(mmb_prob,'mmb prob')
